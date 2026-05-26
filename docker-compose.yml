@@ -1,4 +1,14 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Mathys3005
+      POSTGRES_DB: cesiZen
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   api:
     image: ghcr.io/mathys3005/cesizenapi/cesizen-api:${TAG:-develop}
     restart: unless-stopped
@@ -6,3 +16,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
