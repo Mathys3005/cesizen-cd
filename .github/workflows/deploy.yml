@@ -1,0 +1,57 @@
+name: Deploy API
+
+on:
+  repository_dispatch:
+    types: [deploy-api-staging, deploy-api-prod]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environnement cible
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ (github.event.action == 'deploy-api-prod' || inputs.environment == 'production') && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Déterminer le tag Docker
+        id: vars
+        run: |
+          if [[ "${{ github.event.action }}" == "deploy-api-prod" || "${{ inputs.environment }}" == "production" ]]; then
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            echo "tag=develop" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Copier docker-compose.yml sur la VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.yml
+          target: ~/cesizen/
+
+      - name: Déployer
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GHCR_TOKEN,DOCKER_TAG
+          script: |
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u mathys3005 --password-stdin
+            cd ~/cesizen
+            TAG=$DOCKER_TAG docker compose pull
+            TAG=$DOCKER_TAG docker compose up -d --remove-orphans
+            docker image prune -f
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DOCKER_TAG: ${{ steps.vars.outputs.tag }}
