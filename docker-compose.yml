@@ -24,7 +24,7 @@ services:
       - backend
 
   web:
-    image: ghcr.io/projet-cesi/cesizenweb/cesizen-web:${TAG:-develop}
+    image: ghcr.io/mathys3005/cesizenweb/cesizen-web:${TAG:-develop}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5173}:80"
