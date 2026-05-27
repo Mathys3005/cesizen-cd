@@ -23,6 +23,38 @@ services:
     networks:
       - backend
 
+  web:
+    image: ghcr.io/projet-cesi/cesizenweb/cesizen-web:${TAG:-develop}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    profiles: ["production"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf.template:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    # envsubst injecte $DOMAIN dans le template puis démarre nginx
+    entrypoint: >
+      /bin/sh -c
+      "envsubst '$$DOMAIN' < /etc/nginx/nginx.conf.template
+       > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    depends_on:
+      - api
+      - web
+    networks:
+      - backend
+
 volumes:
   pgdata:
 

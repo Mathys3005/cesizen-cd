@@ -1,8 +1,8 @@
-name: Deploy API
+name: Deploy
 
 on:
   repository_dispatch:
-    types: [deploy-api-staging, deploy-api-prod]
+    types: [deploy-api-staging, deploy-api-prod, deploy-web-staging, deploy-web-prod]
   workflow_dispatch:
     inputs:
       environment:
@@ -17,28 +17,30 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ (github.event.action == 'deploy-api-prod' || inputs.environment == 'production') && 'production' || 'staging' }}
+    environment: ${{ (contains(fromJSON('["deploy-api-prod","deploy-web-prod"]'), github.event.action) || inputs.environment == 'production') && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v6
 
       - name: Déterminer le tag Docker et le répertoire de déploiement
         id: vars
         run: |
-          if [[ "${{ github.event.action }}" == "deploy-api-prod" || "${{ inputs.environment }}" == "production" ]]; then
+          if [[ "${{ github.event.action }}" == *"-prod"* || "${{ inputs.environment }}" == "production" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
             echo "deploy_dir=cesizen-prod" >> $GITHUB_OUTPUT
+            echo "compose_profiles=production" >> $GITHUB_OUTPUT
           else
             echo "tag=develop" >> $GITHUB_OUTPUT
             echo "deploy_dir=cesizen" >> $GITHUB_OUTPUT
+            echo "compose_profiles=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Copier docker-compose.yml sur la VM
+      - name: Copier les fichiers sur la VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: docker-compose.yml
+          source: "docker-compose.yml,nginx.conf"
           target: ~/${{ steps.vars.outputs.deploy_dir }}/
 
       - name: Déployer
@@ -47,14 +49,15 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GHCR_TOKEN,DOCKER_TAG,DEPLOY_DIR
+          envs: GHCR_TOKEN,DOCKER_TAG,DEPLOY_DIR,COMPOSE_PROFILES
           script: |
             echo "$GHCR_TOKEN" | docker login ghcr.io -u mathys3005 --password-stdin
             cd ~/$DEPLOY_DIR
-            TAG=$DOCKER_TAG docker compose pull
-            TAG=$DOCKER_TAG docker compose up -d --remove-orphans
+            TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose pull
+            TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose up -d --remove-orphans
             docker image prune -f
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           DOCKER_TAG: ${{ steps.vars.outputs.tag }}
           DEPLOY_DIR: ${{ steps.vars.outputs.deploy_dir }}
+          COMPOSE_PROFILES: ${{ steps.vars.outputs.compose_profiles }}
