@@ -13,7 +13,7 @@ services:
     image: ghcr.io/mathys3005/cesizenapi/cesizen-api:${TAG:-develop}
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     env_file:
       - .env
     environment:

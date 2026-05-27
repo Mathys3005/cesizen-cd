@@ -21,13 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Déterminer le tag Docker
+      - name: Déterminer le tag Docker et le répertoire de déploiement
         id: vars
         run: |
           if [[ "${{ github.event.action }}" == "deploy-api-prod" || "${{ inputs.environment }}" == "production" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
+            echo "deploy_dir=cesizen-prod" >> $GITHUB_OUTPUT
           else
             echo "tag=develop" >> $GITHUB_OUTPUT
+            echo "deploy_dir=cesizen" >> $GITHUB_OUTPUT
           fi
 
       - name: Copier docker-compose.yml sur la VM
@@ -37,7 +39,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: docker-compose.yml
-          target: ~/cesizen/
+          target: ~/${{ steps.vars.outputs.deploy_dir }}/
 
       - name: Déployer
         uses: appleboy/ssh-action@v1
@@ -45,13 +47,14 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GHCR_TOKEN,DOCKER_TAG
+          envs: GHCR_TOKEN,DOCKER_TAG,DEPLOY_DIR
           script: |
             echo "$GHCR_TOKEN" | docker login ghcr.io -u mathys3005 --password-stdin
-            cd ~/cesizen
+            cd ~/$DEPLOY_DIR
             TAG=$DOCKER_TAG docker compose pull
             TAG=$DOCKER_TAG docker compose up -d --remove-orphans
             docker image prune -f
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           DOCKER_TAG: ${{ steps.vars.outputs.tag }}
+          DEPLOY_DIR: ${{ steps.vars.outputs.deploy_dir }}
