@@ -1,0 +1,8 @@
+services:
+  api:
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  web:
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"

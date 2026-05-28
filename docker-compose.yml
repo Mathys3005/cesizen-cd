@@ -12,8 +12,8 @@ services:
   api:
     image: ghcr.io/mathys3005/cesizenapi/cesizen-api:${TAG:-develop}
     restart: unless-stopped
-    ports:
-      - "${API_PORT:-3000}:3000"
+    expose:
+      - "3000"
     env_file:
       - .env
     environment:
@@ -26,8 +26,8 @@ services:
   web:
     image: ghcr.io/mathys3005/cesizenweb/cesizen-web:${TAG:-develop}
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-5173}:80"
+    expose:
+      - "80"
     networks:
       - backend
 
