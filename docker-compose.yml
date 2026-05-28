@@ -38,17 +38,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DOMAIN=${DOMAIN}
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf.template:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
-    # envsubst injecte $DOMAIN dans le template puis démarre nginx
-    entrypoint: >
-      /bin/sh -c
-      "envsubst '$$DOMAIN' < /etc/nginx/nginx.conf.template
-       > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
     depends_on:
       - api
       - web
