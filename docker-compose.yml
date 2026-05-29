@@ -22,6 +22,26 @@ services:
       - db
     networks:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=backend"
+      # /api/* → api:3000/* (strip du préfixe /api)
+      - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api.middlewares=strip-api"
+      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
+      # /api-docs → api:3000/api-docs (sans strip)
+      - "traefik.http.routers.api-docs.rule=Host(`${DOMAIN}`) && PathPrefix(`/api-docs`)"
+      - "traefik.http.routers.api-docs.entrypoints=websecure"
+      - "traefik.http.routers.api-docs.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api-docs.service=api"
+      # /images/* → api:3000/images/* (sans strip)
+      - "traefik.http.routers.images.rule=Host(`${DOMAIN}`) && PathPrefix(`/images`)"
+      - "traefik.http.routers.images.entrypoints=websecure"
+      - "traefik.http.routers.images.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.images.service=api"
 
   web:
     image: ghcr.io/mathys3005/cesizenweb/cesizen-web:${TAG:-develop}
@@ -30,26 +50,42 @@ services:
       - "80"
     networks:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=backend"
+      - "traefik.http.routers.web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.web.entrypoints=websecure"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web.loadbalancer.server.port=80"
 
-  nginx:
-    image: nginx:alpine
+  traefik:
+    image: traefik:v3.3
     profiles: ["production"]
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
-    depends_on:
-      - api
-      - web
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=backend"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     networks:
       - backend
 
 volumes:
   pgdata:
+  traefik-certs:
 
 networks:
   backend:
