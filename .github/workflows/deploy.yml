@@ -40,7 +40,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml,nginx.conf"
+          source: "docker-compose.yml"
           target: ~/${{ steps.vars.outputs.deploy_dir }}/
 
       - name: Déployer
