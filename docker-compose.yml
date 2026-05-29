@@ -59,14 +59,12 @@ services:
       - "traefik.http.services.web.loadbalancer.server.port=80"
 
   traefik:
-    image: traefik:v3.3
+    image: traefik:v2.11
     profiles: ["production"]
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DOCKER_API_VERSION=1.47
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/letsencrypt
