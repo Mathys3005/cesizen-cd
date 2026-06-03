@@ -27,10 +27,12 @@ jobs:
           if [[ "${{ github.event.action }}" == *"-prod"* || "${{ inputs.environment }}" == "production" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
             echo "deploy_dir=cesizen-prod" >> $GITHUB_OUTPUT
+            echo "compose_files=docker-compose.yml" >> $GITHUB_OUTPUT
             echo "compose_profiles=production" >> $GITHUB_OUTPUT
           else
             echo "tag=develop" >> $GITHUB_OUTPUT
             echo "deploy_dir=cesizen" >> $GITHUB_OUTPUT
+            echo "compose_files=docker-compose.yml:docker-compose.staging.yml" >> $GITHUB_OUTPUT
             echo "compose_profiles=" >> $GITHUB_OUTPUT
           fi
 
@@ -40,7 +42,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml"
+          source: "docker-compose.yml,docker-compose.staging.yml"
           target: ~/${{ steps.vars.outputs.deploy_dir }}/
 
       - name: Déployer
@@ -49,12 +51,12 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GHCR_TOKEN,DOCKER_TAG,DEPLOY_DIR,COMPOSE_PROFILES
+          envs: GHCR_TOKEN,DOCKER_TAG,DEPLOY_DIR,COMPOSE_FILES,COMPOSE_PROFILES
           script: |
             echo "$GHCR_TOKEN" | docker login ghcr.io -u mathys3005 --password-stdin
             cd ~/$DEPLOY_DIR
-            TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose pull
-            TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose up -d --remove-orphans
+            COMPOSE_FILE=$COMPOSE_FILES TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose pull
+            COMPOSE_FILE=$COMPOSE_FILES TAG=$DOCKER_TAG COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose up -d --remove-orphans
             docker image prune -f
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
