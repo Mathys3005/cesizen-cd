@@ -27,7 +27,7 @@ jobs:
           if [[ "${{ github.event.action }}" == *"-prod"* || "${{ inputs.environment }}" == "production" ]]; then
             echo "tag=main" >> $GITHUB_OUTPUT
             echo "deploy_dir=cesizen-prod" >> $GITHUB_OUTPUT
-            echo "compose_files=docker-compose.yml" >> $GITHUB_OUTPUT
+            echo "compose_files=docker-compose.yml:docker-compose.prod.yml" >> $GITHUB_OUTPUT
             echo "compose_profiles=production" >> $GITHUB_OUTPUT
           else
             echo "tag=develop" >> $GITHUB_OUTPUT
@@ -42,7 +42,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml,docker-compose.staging.yml"
+          source: "docker-compose.yml,docker-compose.staging.yml,docker-compose.prod.yml"
           target: ~/${{ steps.vars.outputs.deploy_dir }}/
 
       - name: Déployer
