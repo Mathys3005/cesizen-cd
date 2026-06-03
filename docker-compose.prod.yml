@@ -11,6 +11,12 @@ services:
       - "traefik.http.routers.api.middlewares=strip-api"
       - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
       - "traefik.http.services.api.loadbalancer.server.port=3000"
+      # /api-docs → api:3000/api-docs (sans strip)
+      - "traefik.http.routers.api-docs.rule=Host(`${DOMAIN}`) && PathPrefix(`/api-docs`)"
+      - "traefik.http.routers.api-docs.priority=20"
+      - "traefik.http.routers.api-docs.entrypoints=websecure"
+      - "traefik.http.routers.api-docs.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api-docs.service=api"
       # /images/* → api:3000/images/* (sans strip)
       - "traefik.http.routers.images.rule=Host(`${DOMAIN}`) && PathPrefix(`/images`)"
       - "traefik.http.routers.images.entrypoints=websecure"
