@@ -62,4 +62,5 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           DOCKER_TAG: ${{ steps.vars.outputs.tag }}
           DEPLOY_DIR: ${{ steps.vars.outputs.deploy_dir }}
+          COMPOSE_FILES: ${{ steps.vars.outputs.compose_files }}
           COMPOSE_PROFILES: ${{ steps.vars.outputs.compose_profiles }}
