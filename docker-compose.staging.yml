@@ -6,7 +6,7 @@ services:
       - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.api.priority=10"
       - "traefik.http.routers.api.entrypoints=web"
-      - "traefik.http.routers.api.middlewares=strip-api,staging-auth"
+      - "traefik.http.routers.api.middlewares=strip-api"
       - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
       - "traefik.http.services.api.loadbalancer.server.port=3000"
       - "traefik.http.routers.api-docs.rule=PathPrefix(`/api-docs`)"
@@ -17,7 +17,6 @@ services:
       - "traefik.http.routers.images.rule=PathPrefix(`/images`)"
       - "traefik.http.routers.images.priority=10"
       - "traefik.http.routers.images.entrypoints=web"
-      - "traefik.http.routers.images.middlewares=staging-auth"
       - "traefik.http.routers.images.service=api"
 
   web:
