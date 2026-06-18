@@ -25,9 +25,8 @@ Dans le portail Azure → Réseau → Règles de sécurité entrantes, ajouter :
 | 310 | HTTP | 80 | TCP | `*` | Prod (Traefik + redirection HTTPS) |
 | 320 | HTTPS | 443 | TCP | `*` | Prod (TLS Let's Encrypt) |
 | 330 | Staging | 8080 | TCP | `*` | Accès staging (protégé par BasicAuth) |
-| 340 | Monitoring | 3001 | TCP | Votre IP | Uptime Kuma (protégé par son propre login) |
 
-> **Conseil sécurité** : restreindre les ports 22 et 3001 à votre adresse IP plutôt qu'à `*`.
+> **Conseil sécurité** : restreindre le port 22 à votre adresse IP plutôt qu'à `*`.
 
 ---
 
@@ -303,43 +302,6 @@ docker compose ps
 
 ---
 
-## 11. Monitoring — Uptime Kuma
-
-Uptime Kuma est inclus dans le `docker-compose.yml` de base. Il tourne sur le port **3001** et surveille les services en les contactant périodiquement.
-
-### Première connexion
-
-Ouvrir `http://20.199.139.17:3001` dans le navigateur. Uptime Kuma demande de créer un compte admin au premier lancement.
-
-### Configurer les notifications Discord
-
-1. Dans Discord : **Paramètres du serveur → Intégrations → Webhooks → Nouveau webhook**
-2. Choisir le salon, copier l'URL du webhook.
-3. Dans Uptime Kuma : **Settings → Notifications → Add Notification**
-   - Type : **Discord**
-   - Webhook URL : coller l'URL copiée
-   - Tester avec le bouton **Test** → un message doit apparaître dans Discord
-   - Sauvegarder
-
-### Monitors à créer
-
-Aller dans **Add New Monitor** et créer les entrées suivantes :
-
-| Nom | Type | URL / Cible | Intervalle |
-|-----|------|-------------|-----------|
-| Front — Prod | HTTP(s) | `https://cesizen.switzerlandnorth.cloudapp.azure.com` | 60s |
-| API — Prod | HTTP(s) | `https://cesizen.switzerlandnorth.cloudapp.azure.com/api/health` | 60s |
-| Front — Staging | HTTP(s) | `http://20.199.139.17:8080` | 60s |
-| Conteneur API | Docker Container | `cesizen-api-1` (nom du conteneur) | 60s |
-| Conteneur Web | Docker Container | `cesizen-web-1` | 60s |
-| Conteneur DB | Docker Container | `cesizen-db-1` | 60s |
-
-> Pour les monitors Docker Container, Uptime Kuma lit directement le socket Docker monté en `:ro`. Il surveille l'état du conteneur (Running/Stopped), pas l'application.
-
-Sur chaque monitor, dans l'onglet **Notifications**, cocher la notification Discord créée précédemment.
-
----
-
 ## Récapitulatif des URLs
 
 | Environnement | URL |
@@ -347,4 +309,3 @@ Sur chaque monitor, dans l'onglet **Notifications**, cocher la notification Disc
 | Staging | `http://20.199.139.17:8080` (BasicAuth) |
 | Production | `https://cesizen.switzerlandnorth.cloudapp.azure.com` |
 | API Swagger (staging) | `http://20.199.139.17:8080/api-docs` (BasicAuth) |
-| Monitoring | `http://20.199.139.17:3001` (login Uptime Kuma) |
