@@ -31,8 +31,20 @@ services:
     networks:
       - backend
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - backend
+
 volumes:
   pgdata:
+  kuma-data:
 
 networks:
   backend:
